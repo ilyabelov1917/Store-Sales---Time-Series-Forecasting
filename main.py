@@ -87,3 +87,21 @@ test_df['is_holiday'] = test_df['type'].notnull().astype(int)
 #Dropping the 'type' column after creating 'is_holiday', using errors='ignore' to avoid KeyError if 'type' doesn't exist
 train_df = train_df.drop(columns=['type'], errors='ignore')
 test_df = test_df.drop(columns=['type'], errors='ignore')
+
+#Feature Engineering
+
+#Feature Engineering on Date
+train_df['day'] = train_df['date'].dt.dayofweek
+train_df['month'] = train_df['date'].dt.month
+test_df['day'] = test_df['date'].dt.dayofweek
+test_df['month'] = test_df['date'].dt.month
+#Creating Lag Features for Sales
+for lag in [1, 7, 30]:
+    train_df[f'sales_lag_{lag}'] = train_df.groupby(['store_nbr', 'family'])['sales'].shift(lag)
+    
+#Creating Rolling Window Features for Sales
+for window in [7, 14, 30]:
+    train_df[f'sales_rolling_mean_{window}'] = train_df.groupby(['store_nbr', 'family'])['sales'].transform(lambda x: x.rolling(window, min_periods=1).mean())
+# Weekday or Weekend
+train_df['is_weekend'] = train_df['day'].isin([5, 6]).astype(int)
+test_df['is_weekend'] = test_df['day'].isin([5, 6]).astype(int)
