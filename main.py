@@ -98,10 +98,36 @@ test_df['month'] = test_df['date'].dt.month
 #Creating Lag Features for Sales
 for lag in [1, 7, 30]:
     train_df[f'sales_lag_{lag}'] = train_df.groupby(['store_nbr', 'family'])['sales'].shift(lag)
-    
+
 #Creating Rolling Window Features for Sales
 for window in [7, 14, 30]:
     train_df[f'sales_rolling_mean_{window}'] = train_df.groupby(['store_nbr', 'family'])['sales'].transform(lambda x: x.rolling(window, min_periods=1).mean())
 # Weekday or Weekend
 train_df['is_weekend'] = train_df['day'].isin([5, 6]).astype(int)
 test_df['is_weekend'] = test_df['day'].isin([5, 6]).astype(int)
+
+#Model Selection, let's try with XGB Regressor
+
+from xgboost import XGBRegressor
+from sklearn.model_selection import train_test_split
+X = train_df.drop(columns=['sales', 'id', 'date'])
+y = train_df['sales']
+X_train, X_val, y_train, y_val = train_test_split(X, y, test_size = 0.3, random_state = 42)
+non_numeric_cols = X_train.select_dtypes(include=['object', 'category']).columns
+# One-hot encode any remaining non-numeric columns
+X_train = pd.get_dummies(X_train, columns=non_numeric_cols, drop_first=True)
+X_val = pd.get_dummies(X_val, columns=non_numeric_cols, drop_first=True)
+# Align columns of X_val with X_train, filling missing columns with 0
+X_val = X_val.reindex(columns=X_train.columns, fill_value=0)
+
+model = XGBRegressor(objective='reg:squarederror', n_estimators=100, learning_rate=0.1, max_depth=6)
+model.fit(X_train, y_train)
+# Predict on validation set
+y_pred = model.predict(X_val)
+
+
+from sklearn.metrics import mean_absolute_error, mean_squared_error
+mae = mean_absolute_error(y_val, y_pred)
+mse = mean_squared_error(y_val, y_pred)
+print(f"Mean Absolute Error is: {mae} ")
+print(f"Mean Squared Error is: {mse} ")
