@@ -98,7 +98,7 @@ test_df['month'] = test_df['date'].dt.month
 #Creating Lag Features for Sales
 for lag in [1, 7, 30]:
     train_df[f'sales_lag_{lag}'] = train_df.groupby(['store_nbr', 'family'])['sales'].shift(lag)
-
+    
 #Creating Rolling Window Features for Sales
 for window in [7, 14, 30]:
     train_df[f'sales_rolling_mean_{window}'] = train_df.groupby(['store_nbr', 'family'])['sales'].transform(lambda x: x.rolling(window, min_periods=1).mean())
